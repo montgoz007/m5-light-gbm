@@ -73,10 +73,31 @@ python src/train_model.py
 python src/cross_validate.py --search grid  # or --search random
 ```
 
+
+## Visualisation
+
+### Exploratory Data Analysis (EDA)
+Generate an interactive HTML report to explore the M5 dataset before modeling:
+
+```bash
+python src/visualise_data.py
+```
+Output: `output/eda_report.html` (includes sales trends, per-store breakdowns, and more)
+
+### Predictions vs Actuals
+Visualise model predictions against actuals for each store:
+
+```bash
+python src/visualise_predictions.py
+```
+Output: `output/predictions_vs_actuals_report.html` (charts for each store, overlaying predictions and actuals)
+
 ## Outputs
 - Per-store validation predictions: `output/*_val_preds.parquet`
 - Validation scores summary: `output/validation_scores.csv`
 - Best parameters per store: `output/best_params.json`
+- EDA report: `output/eda_report.html`
+- Predictions vs Actuals report: `output/predictions_vs_actuals_report.html`
 
 ## Testing
 
