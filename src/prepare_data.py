@@ -25,13 +25,16 @@ DEFAULT_WINDOWS = [7, 28]
 # ---------------------------
 # Load static data
 # ---------------------------
-print("Loading static datasets...")
-calendar = pd.read_parquet(DATA_DIR / "calendar.parquet")
-prices   = pd.read_parquet(DATA_DIR / "sell_prices.parquet")
-sales    = pd.read_parquet(DATA_DIR / "sales_train_validation.parquet")
+def load_data():
+    print("Loading static datasets...")
+    calendar = pd.read_parquet(DATA_DIR / "calendar.parquet")
+    prices   = pd.read_parquet(DATA_DIR / "sell_prices.parquet")
+    sales    = pd.read_parquet(DATA_DIR / "sales_train_validation.parquet")
 
-for col in ['event_name_1','event_type_1','event_name_2','event_type_2']:
-    calendar[col] = calendar[col].astype('category')
+    for col in ['event_name_1','event_type_1','event_name_2','event_type_2']:
+        calendar[col] = calendar[col].astype('category')
+    
+    return calendar, prices, sales
 
 # ---------------------------
 # Feature engineering
@@ -58,43 +61,48 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------
 # Process per store
 # ---------------------------
-stores = sales['store_id'].unique()
-print(f"Processing {len(stores)} stores with dynamic last‑28‑day split...")
+def process_stores(calendar, prices, sales):
+    stores = sales['store_id'].unique()
+    print(f"Processing {len(stores)} stores with dynamic last‑28‑day split...")
 
-for store in tqdm(stores, desc="Stores"):
-    subset_sales = sales[sales['store_id'] == store].copy()
+    for store in tqdm(stores, desc="Stores"):
+        subset_sales = sales[sales['store_id'] == store].copy()
 
-    id_vars = ['id','item_id','dept_id','cat_id','store_id','state_id']
-    melted = subset_sales.melt(id_vars=id_vars, var_name='d_raw', value_name='sales')
-    melted['d_raw'] = melted['d_raw'].astype(str)
+        id_vars = ['id','item_id','dept_id','cat_id','store_id','state_id']
+        melted = subset_sales.melt(id_vars=id_vars, var_name='d_raw', value_name='sales')
+        melted['d_raw'] = melted['d_raw'].astype(str)
 
-    # Merge calendar (so we have actual dates before split)
-    cal_renamed = calendar.rename(columns={'d': 'd_raw'})
-    merged = melted.merge(cal_renamed, on='d_raw', how='left')
+        # Merge calendar (so we have actual dates before split)
+        cal_renamed = calendar.rename(columns={'d': 'd_raw'})
+        merged = melted.merge(cal_renamed, on='d_raw', how='left')
 
-    # Merge prices
-    merged = merged.merge(
-        prices[prices['store_id'] == store],
-        on=['store_id','item_id','wm_yr_wk'], how='left'
-    )
+        # Merge prices
+        merged = merged.merge(
+            prices[prices['store_id'] == store],
+            on=['store_id','item_id','wm_yr_wk'], how='left'
+        )
 
-    # Feature engineering
-    merged = create_features(merged)
+        # Feature engineering
+        merged = create_features(merged)
 
-    # Drop rows where all lags are missing
-    merged.dropna(subset=[f'lag_{l}' for l in DEFAULT_LAGS], how='all', inplace=True)
+        # Drop rows where all lags are missing
+        merged.dropna(subset=[f'lag_{l}' for l in DEFAULT_LAGS], how='all', inplace=True)
 
-    # Assign split: last 28 days in *this store's available history*
-    merged = merged.sort_values(['id','date'])
-    max_date = merged['date'].max()
-    val_start_date = max_date - pd.Timedelta(days=27)  # inclusive of max_date
+        # Assign split: last 28 days in *this store's available history*
+        merged = merged.sort_values(['id','date'])
+        max_date = merged['date'].max()
+        val_start_date = max_date - pd.Timedelta(days=27)  # inclusive of max_date
 
-    merged['split'] = np.where(merged['date'] < val_start_date, 'train', 'val')
+        merged['split'] = np.where(merged['date'] < val_start_date, 'train', 'val')
 
-    # Save per‑store feature file
-    merged.to_parquet(FEATURES_DIR / f"{store}_features.parquet", index=False)
+        # Save per‑store feature file
+        merged.to_parquet(FEATURES_DIR / f"{store}_features.parquet", index=False)
 
-    del subset_sales, melted, merged
-    gc.collect()
+        del subset_sales, melted, merged
+        gc.collect()
 
-print("✅ Feature engineering complete — dynamic train/val split applied for all stores")
+    print("✅ Feature engineering complete — dynamic train/val split applied for all stores")
+
+if __name__ == "__main__":
+    calendar, prices, sales = load_data()
+    process_stores(calendar, prices, sales)
