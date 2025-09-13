@@ -39,8 +39,9 @@ def test_main_downloads_and_unzips(mock_echo, mock_secho, mock_zip, mock_run, mo
     # Simulate no CSVs, but a zip file present after download
     mock_listdir.side_effect = [[], ['data.zip'], ['train.csv']]
     mock_run.return_value = MagicMock(returncode=0, stderr='', stdout='')
+    import pandas as pd
     with patch('src.get_kaggle_data.pd.read_csv'), \
-         patch('src.get_kaggle_data.pd.read_parquet'), \
+         patch('src.get_kaggle_data.pd.read_parquet', return_value=pd.DataFrame({'a': [1, 2], 'b': [3, 4]})), \
          patch('src.get_kaggle_data.pd.DataFrame.to_parquet'), \
          patch('src.get_kaggle_data.dir_size', return_value='1.0MiB'), \
          patch('src.get_kaggle_data.human_size', return_value='1.0MiB'), \
