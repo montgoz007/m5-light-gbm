@@ -48,8 +48,7 @@ def test_main_downloads_and_unzips(mock_echo, mock_secho, mock_zip, mock_run, mo
          patch('src.get_kaggle_data.os.remove'):
         # Should attempt download and unzip
         mock_zip.return_value.__enter__.return_value.extractall = MagicMock()
-        with pytest.raises(typer.Exit):
-            get_kaggle_data.main('m5-forecasting-accuracy', test_size=0.2)
+        get_kaggle_data.main('m5-forecasting-accuracy', test_size=0.2)
         mock_secho.assert_any_call('⏬ Downloading m5-forecasting-accuracy', fg=typer.colors.CYAN)
         assert mock_run.called
         assert mock_zip.called
