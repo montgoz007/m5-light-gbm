@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock, call
-import typer
+import click
 import os
 
 # Import the CLI app and helpers
@@ -24,9 +24,9 @@ def test_main_skips_download(mock_echo, mock_secho, mock_listdir, mock_makedirs)
          patch('src.get_kaggle_data.human_size', return_value='1.0MiB'), \
          patch('src.get_kaggle_data.shutil.copy') as mock_copy:
         # Should skip download and exit after reporting splits
-        with pytest.raises(typer.Exit):
+        with pytest.raises(click.exceptions.Exit):
             get_kaggle_data.main('m5-forecasting-accuracy')
-        mock_secho.assert_any_call('⚠️  CSVs already in place — skipping download.', fg=typer.colors.YELLOW)
+        mock_secho.assert_any_call('⚠️  CSVs already in place — skipping download.', fg=get_kaggle_data.typer.colors.YELLOW)
 
 @patch('src.get_kaggle_data.os.makedirs')
 @patch('src.get_kaggle_data.os.listdir')
@@ -48,7 +48,8 @@ def test_main_downloads_and_unzips(mock_echo, mock_secho, mock_zip, mock_run, mo
          patch('src.get_kaggle_data.os.remove'):
         # Should attempt download and unzip
         mock_zip.return_value.__enter__.return_value.extractall = MagicMock()
-        get_kaggle_data.main('m5-forecasting-accuracy', test_size=0.2)
-        mock_secho.assert_any_call('⏬ Downloading m5-forecasting-accuracy', fg=typer.colors.CYAN)
+        with pytest.raises(click.exceptions.Exit):
+            get_kaggle_data.main('m5-forecasting-accuracy', test_size=0.2)
+        mock_secho.assert_any_call('⏬ Downloading m5-forecasting-accuracy', fg=get_kaggle_data.typer.colors.CYAN)
         assert mock_run.called
         assert mock_zip.called
