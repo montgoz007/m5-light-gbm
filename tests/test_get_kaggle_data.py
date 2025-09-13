@@ -21,7 +21,8 @@ def test_main_skips_download(mock_echo, mock_secho, mock_listdir, mock_makedirs)
          patch('src.get_kaggle_data.pd.read_parquet'), \
          patch('src.get_kaggle_data.pd.DataFrame.to_parquet'), \
          patch('src.get_kaggle_data.dir_size', return_value='1.0MiB'), \
-         patch('src.get_kaggle_data.human_size', return_value='1.0MiB'):
+         patch('src.get_kaggle_data.human_size', return_value='1.0MiB'), \
+         patch('src.get_kaggle_data.shutil.copy') as mock_copy:
         # Should skip download and exit after reporting splits
         with pytest.raises(typer.Exit):
             get_kaggle_data.main('m5-forecasting-accuracy')
@@ -43,7 +44,8 @@ def test_main_downloads_and_unzips(mock_echo, mock_secho, mock_zip, mock_run, mo
          patch('src.get_kaggle_data.pd.DataFrame.to_parquet'), \
          patch('src.get_kaggle_data.dir_size', return_value='1.0MiB'), \
          patch('src.get_kaggle_data.human_size', return_value='1.0MiB'), \
-         patch('src.get_kaggle_data.os.remove'):
+         patch('src.get_kaggle_data.os.remove'), \
+         patch('src.get_kaggle_data.typer.Option', side_effect=lambda *a, **kw: 0.2):
         # Should attempt download and unzip
         mock_zip.return_value.__enter__.return_value.extractall = MagicMock()
         with pytest.raises(typer.Exit):
