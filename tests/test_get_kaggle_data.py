@@ -48,8 +48,31 @@ def test_main_downloads_and_unzips(mock_echo, mock_secho, mock_zip, mock_run, mo
          patch('src.get_kaggle_data.os.remove'):
         # Should attempt download and unzip
         mock_zip.return_value.__enter__.return_value.extractall = MagicMock()
-        with pytest.raises(click.exceptions.Exit):
-            get_kaggle_data.main('m5-forecasting-accuracy', test_size=0.2)
+        get_kaggle_data.main('m5-forecasting-accuracy', test_size=0.2)
+        mock_secho.assert_any_call('⏬ Downloading m5-forecasting-accuracy', fg=get_kaggle_data.typer.colors.CYAN)
+        assert mock_run.called
+        assert mock_zip.called
+
+@patch('src.get_kaggle_data.os.makedirs')
+@patch('src.get_kaggle_data.os.listdir')
+@patch('src.get_kaggle_data.subprocess.run')
+@patch('src.get_kaggle_data.zipfile.ZipFile')
+@patch('src.get_kaggle_data.typer.secho')
+@patch('src.get_kaggle_data.typer.echo')
+def test_main_downloads_and_unzips(mock_echo, mock_secho, mock_zip, mock_run, mock_listdir, mock_makedirs):
+    get_kaggle_data = import_main()
+    mock_listdir.side_effect = [[], ['data.zip'], ['train.csv']]
+    mock_run.return_value = MagicMock(returncode=0, stderr='', stdout='')
+    import pandas as pd
+    with patch('src.get_kaggle_data.pd.read_csv'), \
+         patch('src.get_kaggle_data.pd.read_parquet', return_value=pd.DataFrame({'a': [1, 2], 'b': [3, 4]})), \
+         patch('src.get_kaggle_data.pd.DataFrame.to_parquet'), \
+         patch('src.get_kaggle_data.dir_size', return_value='1.0MiB'), \
+         patch('src.get_kaggle_data.human_size', return_value='1.0MiB'), \
+         patch('src.get_kaggle_data.os.remove'), \
+         patch('src.get_kaggle_data.os.path.exists', return_value=False):  # <--- Add this line
+        mock_zip.return_value.__enter__.return_value.extractall = MagicMock()
+        get_kaggle_data.main('m5-forecasting-accuracy', test_size=0.2)
         mock_secho.assert_any_call('⏬ Downloading m5-forecasting-accuracy', fg=get_kaggle_data.typer.colors.CYAN)
         assert mock_run.called
         assert mock_zip.called
