@@ -1,4 +1,28 @@
-.env
+# Ignore Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
 
-/data   
-/output
+# Ignore test, build, and packaging artifacts
+.pytest_cache/
+.tox/
+.nox/
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Ignore Jupyter and VS Code
+.ipynb_checkpoints
+.vscode/
+
+# Ignore data, models, outputs
+output/
+*.parquet
+*.csv
+*.tsv
+*.log
+
+# Ignore dotenv
+.env
+.env.*
